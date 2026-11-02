@@ -1,8 +1,8 @@
-# Prompt Splitter for axcel.cloud
+# Prompt Splitter
 
-A Chrome side-panel extension that helps you manage **large batches of video prompts** on [axcel.cloud](https://axcel.cloud): split a bulk text into individual prompts, organise them by project and category, fill the generation form for you, and download finished videos into tidy, serial-numbered folders.
+A Chrome side-panel extension that helps you manage **large batches of video prompts** on an AI video generation website: split a bulk text into individual prompts, organise them by project and category, fill the generation form for you, and download finished videos into tidy, serial-numbered folders.
 
-> **Unofficial.** This project is not affiliated with, endorsed by, or supported by axcel.cloud. It was written against the site's current page layout, which can change at any time and break features. Use it at your own risk and follow the site's terms of service.
+> **Unofficial.** This project is not affiliated with, endorsed by, or supported by any website it works with. It was written against the site's current page layout, which can change at any time and break features. Use it at your own risk and follow the site's terms of service.
 
 ## What it does
 
@@ -14,7 +14,7 @@ A Chrome side-panel extension that helps you manage **large batches of video pro
   - **Global setup** (Setup tab) or a **specific setup per category**.
   - Optionally saves reference image ids and sends them with your Generate request in Image-to-Video mode.
 - **Assign prompt / Assign + setup.** Pastes the prompt into the site's textarea (optionally after applying the setup). **You press Generate yourself.** The extension never clicks it.
-- **Job tracking.** Passively reads the site's own `/api/generate` and `/api/jobs*` responses so each prompt gets a **View video** button that opens `https://axcel.cloud/history/{job_id}`.
+- **Job tracking.** Passively reads the site's own `/api/generate` and `/api/jobs*` responses so each prompt gets a **View video** button that opens the result page for that job.
 - **History page helpers.** Cards on the History page get a `Project › Category › serial` label, failed generations are marked red, and each card gets a **＋ Download list** button.
 - **Download list and runner.** Download everything in project → category → serial order, with retries, per-row retry, cancel pending, and waiting for the site's own "Downloading…" to finish.
 - **File naming.** Files are renamed to `Project/Category/NN - Episode N.mp4` inside Chrome's Downloads folder.
@@ -33,9 +33,9 @@ A Chrome side-panel extension that helps you manage **large batches of video pro
 2. Open `chrome://extensions` and turn on **Developer mode**.
 3. Click **Load unpacked** and choose the `extension/` folder.
 4. Pin the extension and click its icon. The side panel opens.
-5. Log in to axcel.cloud and open the Text-to-Video or Image-to-Video page.
+5. Log in to the video site and open the Text-to-Video or Image-to-Video page.
 
-After editing any file, click the reload icon on the extension card, then reload the axcel.cloud tab.
+After editing any file, click the reload icon on the extension card, then reload the site tab.
 
 ## Quick start
 
@@ -68,10 +68,10 @@ The UI follows the [shadcn/ui](https://ui.shadcn.com) design tokens, reimplement
 | `sidePanel` | Show the UI in the side panel |
 | `storage` | Save prompts and settings locally |
 | `clipboardWrite` | Copy prompt buttons |
-| `scripting` | Fill the form and read the result page on axcel.cloud |
-| `tabs` | Find the axcel.cloud tab, open result pages |
+| `scripting` | Fill the form and read the result page on the target site |
+| `tabs` | Find the site tab, open result pages |
 | `downloads` | Rename and place downloaded videos |
-| Host `https://axcel.cloud/*` | The only site the extension runs on |
+| Host permission (see `manifest.json`) | The only site the extension runs on |
 
 ## Known limitations
 
