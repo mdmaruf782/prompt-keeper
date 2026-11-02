@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <nav id="tabs">
+    <button data-tab="prompts" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Prompts</span></button>
+    <button data-tab="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Setup</span></button>
+    <button data-tab="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg><span>Download</span></button>
+  <button id="themeBtn" title="Switch light / dark theme" aria-label="Toggle theme"></button>
+  </nav>
+
+  <div id="tab-prompts" class="tab">
+  <header>
+    <div class="row">
+      <select id="projectSel"></select>
+      <button id="newProject" title="New project">+</button>
+      <button id="renameProject" title="Rename project">✎</button>
+      <button id="deleteProject" title="Delete project">🗑</button>
+    </div>
+    <div id="stats"></div>
+    <div class="bar"><div id="barFill"></div></div>
+    <div class="row">
+      <button id="toggleImport" class="primary">+ Bulk import</button>
+      <button id="nextBtn">Copy next</button>
+      <button id="autoSetup" class="primary" title="Set model, duration, resolution and ratio on the axcel.cloud page">Auto setup page</button>
+    </div>
+    <div id="setupStatus" class="hint"></div>
+    <textarea id="setupDebug" hidden readonly rows="6" style="width:100%;height:100px;font:10px monospace"></textarea>
+    <div class="row">
+      <button id="selectMode">Select…</button>
+      <button id="resetAll">Clear all marks</button>
+      <button id="deleteAll" class="danger">Delete all</button>
+    </div>
+    <div class="row" id="bulkBar" hidden>
+      <label class="chk"><input type="checkbox" id="selAll"> All</label>
+      <span id="selCount"></span>
+      <button id="bulkReset">Clear marks</button>
+      <button id="bulkDelete" class="danger">Delete selected</button>
+    </div>
+  </header>
+
+  <section id="importBox" hidden>
+    <h2 id="importTitle" style="margin-top:0">New category</h2>
+    <div id="newCatFields">
+      <input id="catName" type="text" placeholder="Category name (e.g. Episodes 201-213)">
+      <label class="lbl">Auto setup for this category
+        <select id="catSetupMode">
+          <option value="global">Global setup (Setup tab)</option>
+          <option value="specific">Specific setup (choose after import)</option>
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <select id="splitMode">
+        <option value="auto">Auto (#### boxes, ---, “Prompt 1”)</option>
+        <option value="blank">Split by blank line</option>
+        <option value="delim">Split at lines starting with…</option>
+        <option value="single">Whole text = 1 prompt</option>
+      </select>
+      <input id="delim" type="text" placeholder="e.g. Prompt, ###, ---" hidden>
+    </div>
+    <div id="splitCount" class="hint"></div>
+    <textarea id="input" placeholder="Paste all prompts here (e.g. 100 at once)…"></textarea>
+    <div class="row">
+      <button id="splitBtn" class="primary">Split &amp; add to project</button>
+      <label class="btn">Import .txt<input type="file" id="file" accept=".txt,.md,text/plain" hidden></label>
+      <button id="cancelImport">Cancel</button>
+    </div>
+  </section>
+
+  <div id="cats"></div>
+  <p id="empty" hidden>No categories yet. Click “+ Bulk import” to add prompts to this project.</p>
+
+  </div>
+
+  <div id="tab-setup" class="tab" hidden>
+    <h2>Auto setup settings</h2>
+    <p class="hint">Used by “Auto setup page” on the Prompts tab. Saved in the extension.</p>
+    <label>Model <input id="sModel" type="text"></label>
+    <label>Duration <select id="sDuration"></select></label>
+    <label>Resolution <select id="sResolution"></select></label>
+    <label>Ratio <select id="sRatio"></select></label>
+    <label class="chk"><input type="checkbox" id="sAudio"> Generate Audio on</label>
+
+    <h2>Image to Video</h2>
+    <label>Image mode
+      <select id="sImageMode">
+        <option value="">Don't change</option>
+        <option value="First frame">First frame</option>
+        <option value="First + last">First + last</option>
+        <option value="Reference">Reference</option>
+      </select>
+    </label>
+    <label class="chk"><input type="checkbox" id="sInjectRefs"> Send these reference ids with every Generate request</label>
+    <label class="chk"><input type="checkbox" id="sSelectRefs"> (experimental) also click them in the site's library on Auto setup</label>
+    <div id="sRefs" class="mono"></div>
+    <div class="row">
+      <button id="sCaptureRefs">Capture from page</button>
+      <button id="sClearRefs">Clear</button>
+    </div>
+    <div class="hint">On the Image to Video page, pick your reference images once, then press “Capture from page”. When you press Generate on the Image to Video page, the saved ids are written into the request’s <code>inputs.refimg</code>, in this order. The page needs at least one image selected to allow Generate.</div>
+    <div class="row">
+      <button id="sSave" class="primary">Save</button>
+      <button id="sReset">Reset to defaults</button>
+    </div>
+    <div id="sStatus" class="hint"></div>
+
+    <h2>Page status</h2>
+    <div id="diag" class="hint mono"></div>
+  </div>
+
+  <div id="tab-download" class="tab" hidden>
+    <h2>Link results from History</h2>
+    <p class="hint">On axcel.cloud's History list page, press the button. Each card's prompt is matched to your prompts, and its job id is linked to that prompt (the same as “View video”). Scroll the list first so the cards you want are loaded.</p>
+    <div class="row"><button id="scanBtn" class="primary">Scan this History page</button></div>
+    <div id="scanStatus" class="hint"></div>
+
+    <h2>Results not in your prompts</h2>
+    <p class="hint">History cards whose prompt is not in your lists get a “＋ Download list” button too. They are saved into the category chosen here, numbered by the EPISODE number in their prompt (or 1, 2, 3…).</p>
+    <label>Save them into category <select id="unmatchedCat"></select></label>
+
+    <h2>Download list</h2>
+    <p class="hint">On the History page each card gets a label (Project › Category › serial) and a “Download list” button. Added cards appear here, ordered by project, category and serial.</p>
+    <div class="row">
+      <button id="dlRun" class="primary">Download all</button>
+      <button id="dlStop" disabled>Stop</button>
+      <button id="dlCancel" title="Mark every pending item as cancelled, so Download all skips them">Cancel pending</button>
+      <button id="dlRetry" title="Failed and cancelled items: reset and start downloading now">Retry failed</button>
+      <button id="dlClearDone">Clear done</button>
+      <button id="dlClearAll" class="danger">Clear all</button>
+    </div>
+    <div id="dlListStatus" class="hint"></div>
+    <div id="dlListBox"></div>
+
+    <h2>Download result</h2>
+    <p class="hint">Open a finished result on axcel.cloud, then press the button. It clicks the site's own “Download for final result” button.</p>
+    <label class="chk"><input type="checkbox" id="dlFolders" checked> Save into Project / Category folders with the prompt's serial number</label>
+    <div id="dlProject" class="hint"></div>
+    <label>Base subfolder <input id="dlBase" type="text" placeholder="e.g. AxcelVideos (inside Chrome's Downloads folder, optional)"></label>
+    <label>Category <select id="dlCat"></select></label>
+    <label>File name <input id="dlTemplate" type="text" value="{serial} - Episode {ep}"></label>
+    <div class="hint">{serial} = the prompt's number in the category (always added if missing), {ep} = episode number from the prompt's title, {title} = the title after “EPISODE NN —”, {created} = Created date/time. Folders go under Chrome's Downloads folder: <b>Project/Category/001 - Episode 28.mp4</b>. The result's prompt must match a prompt in the selected category, otherwise nothing is downloaded.</div>
+    <div class="row"><button id="dlBtn" class="primary">Download this result</button></div>
+    <div id="dlStatus" class="hint"></div>
+    <h2>Last download Chrome saw</h2>
+    <div id="dlInfo" class="mono">Nothing yet. Download one result, then check here.</div>
+  </div>
+
+  <script src="parser.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

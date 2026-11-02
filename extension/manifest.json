@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "Prompt Splitter",
+  "version": "2.2.0",
+  "description": "Split bulk prompts into projects and categories, set up the axcel.cloud form, paste prompts, and download results into organised folders.",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "clipboardWrite",
+    "scripting",
+    "tabs",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://axcel.cloud/*"
+  ],
+  "action": {
+    "default_title": "Open Prompt Splitter"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://axcel.cloud/*"
+      ],
+      "js": [
+        "hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://axcel.cloud/*"
+      ],
+      "js": [
+        "relay.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://axcel.cloud/*"
+      ],
+      "js": [
+        "history.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
