@@ -79,7 +79,7 @@
 
   <div id="tab-setup" class="tab" hidden>
     <h2>Auto setup settings</h2>
-    <p class="hint">Used by “Auto setup page” on the Prompts tab. Saved in the extension.</p>
+    <p class="hint">Used by “Auto setup page” on the Prompts tab. Set the form on the site by hand, then press <b>Scan from page</b> to save those settings, or fill the fields below and press Save.</p>
     <label>Model <input id="sModel" type="text"></label>
     <label>Duration <select id="sDuration"></select></label>
     <label>Resolution <select id="sResolution"></select></label>
@@ -104,6 +104,7 @@
     </div>
     <div class="hint">On the Image to Video page, pick your reference images once, then press “Capture from page”. When you press Generate on the Image to Video page, the saved ids are written into the request’s <code>inputs.refimg</code>, in this order. The page needs at least one image selected to allow Generate.</div>
     <div class="row">
+      <button id="sScan" title="Set the form on the site yourself first, then press this">Scan from page</button>
       <button id="sSave" class="primary">Save</button>
       <button id="sReset">Reset to defaults</button>
     </div>

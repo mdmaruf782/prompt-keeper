@@ -599,12 +599,77 @@ async function pageSetup(cfg) {
   return { log, html };
 }
 
+// Reads the settings currently chosen on the page. Runs in the page (MAIN world): self-contained, read-only.
+function pageScanSettings() {
+  const out = { found: {} };
+  const trig = document.querySelector("ax-model-picker button.trigger");
+  if (trig) {
+    const leaf = [...trig.querySelectorAll("*")].filter((e) => e.children.length === 0 && e.textContent.trim());
+    const name = (leaf[0]?.textContent || trig.textContent).trim().replace(/\s+/g, " ");
+    if (name) { out.model = name; out.found.model = true; }
+  }
+  const sel = (need) => [...document.querySelectorAll("select")].find((s) => {
+    const v = [...s.options].map((o) => o.value);
+    return need.every((x) => v.includes(x));
+  });
+  const d = sel(["5", "30"]), r = sel(["480", "1080"]), a = sel(["16:9", "9:16"]);
+  if (d) { out.duration = d.value; out.found.duration = true; }
+  if (r) { out.resolution = r.value; out.found.resolution = true; }
+  if (a) { out.ratio = a.value; out.found.ratio = true; }
+  const group = document.querySelector('[role="radiogroup"][aria-labelledby="mode-gambar-label"]');
+  if (group) {
+    const on = [...group.querySelectorAll('[role="radio"]')].find((x) => x.getAttribute("aria-checked") === "true");
+    if (on) { out.imageMode = on.textContent.trim(); out.found.imageMode = true; }
+  }
+  const lbl = [...document.querySelectorAll("label")].find((l) => l.textContent.includes("Generate Audio"));
+  const sw = lbl?.querySelector('button[role="switch"]');
+  if (sw) { out.audio = sw.getAttribute("aria-checked") === "true"; out.found.audio = true; }
+  out.refs = [...document.querySelectorAll('[data-uji="nomor-ref"]')]
+    .map((b) => {
+      const img = b.parentElement.querySelector("img");
+      const m = (img?.src || "").match(/\/api\/library\/(as_[0-9a-f]+)/);
+      return m ? { id: m[1], name: img.alt || "" } : null;
+    })
+    .filter(Boolean);
+  return out;
+}
+
+// Runs the scan on the site tab. Returns the result, or null (with a message) when it could not.
+async function scanPage(say) {
+  const tab = await findTab();
+  if (!tab) { say("Open the site's generate page first."); return null; }
+  try {
+    const [{ result }] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: "MAIN", func: pageScanSettings });
+    if (!Object.keys(result.found).length) { say("No settings found on this page. Open the Text to Video or Image to Video form."); return null; }
+    return result;
+  } catch (e) { say("Scan failed: " + e.message); return null; }
+}
+const setSel = (s, v) => { if ([...s.options].some((o) => o.value === v)) s.value = v; };
+const scanSummary = (r) =>
+  [r.model && `model ${r.model}`, r.duration && `${r.duration}s`, r.resolution && `${r.resolution}p`, r.ratio && `ratio ${r.ratio}`,
+   r.audio != null && `audio ${r.audio ? "on" : "off"}`, r.imageMode && `mode ${r.imageMode}`, r.refs.length && `${r.refs.length} reference image(s)`]
+    .filter(Boolean).join(" · ");
+
 async function findTab() {
   const url = "https://axcel.cloud/*";
   // The tab the user is looking at (in the focused window) first, then any axcel.cloud tab.
   const [current] = await chrome.tabs.query({ url, active: true, lastFocusedWindow: true });
   return current || (await chrome.tabs.query({ url }))[0];
 }
+
+$("sScan").onclick = async () => {
+  const r = await scanPage((m) => ($("sStatus").textContent = m));
+  if (!r) return;
+  if (r.model) $("sModel").value = r.model;
+  if (r.duration) setSel($("sDuration"), r.duration);
+  if (r.resolution) setSel($("sResolution"), r.resolution);
+  if (r.ratio) setSel($("sRatio"), r.ratio);
+  if (r.audio != null) $("sAudio").checked = r.audio;
+  if (r.imageMode) setSel($("sImageMode"), r.imageMode);
+  if (r.refs.length) SETUP.refs = r.refs; // sSave keeps SETUP.refs
+  await $("sSave").onclick();
+  $("sStatus").textContent = `Scanned and saved: ${scanSummary(r)}`;
+};
 
 // Applies the saved settings on the page. Returns false only if the script itself could not run.
 const effSetup = (cat) => (cat && cat.setup ? { ...DEFAULT_SETUP, ...cat.setup } : SETUP);
@@ -1341,13 +1406,32 @@ function catSetupPanel(cat) {
   );
   form.hidden = mode.value !== "specific";
   mode.onchange = () => (form.hidden = mode.value !== "specific");
+  const collect = () => ({
+    model: model.value.trim() || DEFAULT_SETUP.model, duration: dur.value, resolution: res.value, ratio: ratio.value,
+    audio: audio.checked, imageMode: imode.value, selectRefs: sel.checked, injectRefs: inject.checked, refs,
+  });
+  const scan = el("button", { textContent: "Scan from page" });
+  scan.title = "Set the form on the site yourself first, then press this to copy those settings here";
+  scan.onclick = async () => {
+    const r = await scanPage((m) => (status.textContent = m));
+    if (!r) return;
+    if (r.model) model.value = r.model;
+    if (r.duration) setSel(dur, r.duration);
+    if (r.resolution) setSel(res, r.resolution);
+    if (r.ratio) setSel(ratio, r.ratio);
+    if (r.audio != null) audio.checked = r.audio;
+    if (r.imageMode) setSel(imode, r.imageMode);
+    if (r.refs.length) { refs = r.refs; showRefs(); }
+    mode.value = "specific";
+    form.hidden = false;
+    cat.setup = collect();
+    save();
+    status.textContent = `Scanned and saved for this category: ${scanSummary(r)}`;
+  };
   const saveBtn = el("button", { className: "primary", textContent: "Save" });
   saveBtn.onclick = () => {
     if (mode.value === "global") delete cat.setup;
-    else cat.setup = {
-      model: model.value.trim() || DEFAULT_SETUP.model, duration: dur.value, resolution: res.value, ratio: ratio.value,
-      audio: audio.checked, imageMode: imode.value, selectRefs: sel.checked, injectRefs: inject.checked, refs,
-    };
+    else cat.setup = collect();
     openSet.delete(cat.id);
     save();
     render();
@@ -1356,7 +1440,7 @@ function catSetupPanel(cat) {
   box.append(
     el("div", { className: "title" }, `Auto setup for "${cat.name}"`),
     el("div", { className: "hint" }, "Used by “Assign + setup” on this category's prompts."),
-    field("Setup to use", mode), form, el("div", { className: "row" }, saveBtn, closeBtn), status
+    field("Setup to use", mode), el("div", { className: "row" }, scan), form, el("div", { className: "row" }, saveBtn, closeBtn), status
   );
   return box;
 }
